@@ -4,6 +4,23 @@
 
 using namespace std;
 
+using Row = std::vector<int64_t>;
+using Table = std::vector<Row>;
+
+Table parse(const std::string &file_name) {
+    std::fstream file{file_name};
+    std::string line;
+    Table table;
+    uint64_t n{};
+    while (getline(file, line)) {
+        std::istringstream ss(line);
+        Row row;
+        while (ss >> n) row.emplace_back(n);
+        table.emplace_back(row);
+    }
+    return table;
+}
+
 bool is_level_safe(const Row &level) {
     bool increase = (level[1] - level[0]) > 0;
     for (int i = 1; i < level.size(); ++i) {

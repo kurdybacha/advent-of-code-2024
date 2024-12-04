@@ -2,70 +2,76 @@
 #include <print>
 #include <vector>
 
+#include "../utils.h"
+
 using namespace std;
-
-using Matrix = vector<string>;
-
-Matrix parse(const string &file_name) {
-    fstream file{file_name};
-    string line;
-    Matrix matrix;
-    while (getline(file, line)) matrix.emplace_back(line);
-    return matrix;
-}
+using namespace utils;
 
 struct Pos {
     int x;
     int y;
-    void operator+=(const Pos pos) {
-        x += pos.x;
-        y += pos.y;
+    void operator+=(const Pos &p) {
+        x += p.x;
+        y += p.y;
     }
 };
-
-bool inside(const Matrix &m, const Pos &pos) {
-    return pos.x >= 0 && pos.x < m[0].size() && pos.y >= 0 && pos.y < m.size();
+Pos operator+(const Pos &p1, const Pos &p2) {
+    return {p1.x + p2.x, p1.y + p2.y};
 }
 
-int count_xmases_1(const Matrix &m, const Pos &pos) {
+struct Matrix {
+    vector<string> m;
+    size_t width() const { return m.at(0).size(); }
+    size_t height() const { return m.size(); }
+    bool contains(const Pos &pos) const {
+        return pos.x >= 0 && pos.x < width() && pos.y >= 0 && pos.y < height();
+    }
+    char at(const Pos &pos) const { return m[pos.y][pos.x]; }
+};
+
+Matrix matrixFromFile(const string &file_name) {
+    fstream file{file_name};
+    string line;
+    Matrix matrix;
+    while (getline(file, line)) matrix.m.emplace_back(line);
+    return matrix;
+}
+
+const string pattern = "MAS";
+
+int count_xmases_1(const Matrix &matrix, const Pos &pos) {
     vector<Pos> moves = {{-1, 0}, {-1, -1}, {0, -1}, {1, -1},
                          {1, 0},  {1, 1},   {0, 1},  {-1, 1}};
 
-    if (m[pos.y][pos.x] != 'X') return 0;
+    if (matrix.at(pos) != 'X') return 0;
     int count = 0;
-    const string &pattern = "MAS";
-    for (auto move : moves) {
-        Pos dir = pos;
-        dir += move;
-        for (int i = 0; i < pattern.size(); ++i) {
-            if (!inside(m, dir)) break;
-            if (m[dir.y][dir.x] != pattern[i])
+    for (const auto &move : moves) {
+        Pos curr_pos = pos + move;
+        for (char c : pattern) {
+            if (!matrix.contains(curr_pos)) break;
+            if (matrix.at(curr_pos) != c)
                 break;
             else
-                dir += move;
-            if (i == pattern.size() - 1) ++count;
+                curr_pos += move;
+            if (c == 'S') ++count;
         }
     }
     return count;
 }
 
-int count_xmases_2(const Matrix &m, const Pos &pos) {
-    if (m[pos.y][pos.x] != 'A') return 0;
+int count_xmases_2(const Matrix &matrix, const Pos &pos) {
+    if (matrix.at(pos) != 'A') return 0;
 
-    Pos p1a = pos;
-    p1a += {-1, -1};
-    Pos p1b = pos;
-    p1b += {1, 1};
-    Pos p2a = pos;
-    p2a += {1, -1};
-    Pos p2b = pos;
-    p2b += {-1, 1};
+    Pos p1a = pos + Pos{-1, -1};
+    Pos p1b = pos + Pos{1, 1};
+    Pos p2a = pos + Pos{1, -1};
+    Pos p2b = pos + Pos{-1, 1};
 
-    auto match = [&m](Pos a, Pos b) -> bool {
-        if (!(inside(m, a) && inside(m, b))) return false;
-        char a1 = m[a.y][a.x];
-        char a2 = m[b.y][b.x];
-        if (a1 != a2 && (a1 == 'M' || a1 == 'S') && (a2 == 'M' || a2 == 'S'))
+    auto match = [&matrix](Pos a, Pos b) -> bool {
+        if (!(matrix.contains(a) && matrix.contains(b))) return false;
+        char ca = matrix.at(a);
+        char cb = matrix.at(b);
+        if (ca != cb && (ca == 'M' || ca == 'S') && (cb == 'M' || cb == 'S'))
             return true;
         return false;
     };
@@ -73,15 +79,17 @@ int count_xmases_2(const Matrix &m, const Pos &pos) {
     return 0;
 }
 
-int main(int argc, char **argv) {
-    const Matrix &matrix = parse(argv[1]);
-    int part1 = 0;
-    int part2 = 0;
-    for (int i = 0; i < matrix.size(); ++i)
-        for (int j = 0; j < matrix[0].size(); ++j) {
-            part1 += count_xmases_1(matrix, {j, i});
-            part2 += count_xmases_2(matrix, {j, i});
+int run(const Matrix &matrix, auto counterFunc) {
+    int result = 0;
+    for (int i = 0; i < matrix.width(); ++i)
+        for (int j = 0; j < matrix.height(); ++j) {
+            result += counterFunc(matrix, {i, j});
         }
-    println("Part1: {}", part1);
-    println("Part2: {}", part2);
+    return result;
+}
+
+int main(int argc, char **argv) {
+    const Matrix &matrix = matrixFromFile(argv[1]);
+    timeit([&]() -> int { return run(matrix, count_xmases_1); });
+    timeit([&]() -> int { return run(matrix, count_xmases_2); });
 }
