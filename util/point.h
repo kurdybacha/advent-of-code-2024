@@ -1,4 +1,4 @@
-#include <vector>
+#include <unordered_set>
 
 namespace aoc {
 
@@ -13,6 +13,9 @@ template <typename T>
 point<T> operator+(const point<T> &lhs, const point<T> &rhs) {
     return {lhs.x + rhs.x, lhs.y + rhs.y};
 }
+
+template <typename T>
+using point_set = std::unordered_set<point<T>>;
 
 }  // namespace aoc
 
