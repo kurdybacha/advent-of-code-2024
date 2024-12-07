@@ -1,5 +1,4 @@
 #include <fstream>
-#include <functional>
 #include <print>
 #include <vector>
 
@@ -12,6 +11,15 @@ using namespace utils;
 using point = aoc::point<int>;
 using point_set = aoc::point_set<int>;
 
+struct node {
+    node(char c) : type{c} {}
+    char type;
+    int last_dir = -1;
+    operator char() const { return type; }
+};
+
+using Grid = vector<vector<node>>;
+
 const auto dirs = vector<point>{{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
 
 struct Guard {
@@ -22,93 +30,76 @@ struct Guard {
     void move_forward() { pos = next_pos(); }
 };
 
-bool operator==(const Guard &lhs, const Guard &rhs) {
-    return lhs.pos == rhs.pos && lhs.dir == rhs.dir;
-};
-struct hash_Guard {
-    std::size_t operator()(const Guard &g) const noexcept {
-        std::size_t h1 = std::hash<point>{}(g.pos);
-        std::size_t h2 = std::hash<int>{}(g.dir);
-        return h1 ^ (h2 << 1);
-    }
-};
-
-using guard_set = unordered_set<Guard, hash_Guard>;
-
-tuple<point_set, Guard, point> fromFile(const string &file_name) {
+pair<Grid, Guard> fromFile(const string &file_name) {
     fstream file{file_name};
     string line;
+    Grid grid{};
     Guard guard{};
-    point_set obstacles;
     int line_no = 0;
-    point bounds{-1, -1};
     while (getline(file, line)) {
-        if (bounds.x == -1)
-            bounds.x = line.size();
+        vector<node> nodes;
         for (int i = 0; i < line.size(); ++i) {
-            if (line[i] == '^')
-                guard.pos = {i, line_no};
-            else if (line[i] == '#')
-                obstacles.emplace(point{i, line_no});
+            nodes.emplace_back(node{line[i]});
+            if (line[i] == '^') guard.pos = {i, line_no};
         }
+        grid.emplace_back(nodes);
         ++line_no;
     }
-    bounds.y = line_no;
-    return {obstacles, guard, bounds};
+    return {grid, guard};
 }
 
-inline bool in_bounds(const point &p, const point &bounds) {
-    return p.x >= 0 && p.x < bounds.x && p.y >= 0 && p.y < bounds.y;
-}
-
-bool walk(const point_set &obstacles, Guard guard, const point &bounds,
-          std::function<bool(const Guard &p)> visit = {}) {
-    while (in_bounds(guard.pos, bounds)) {
-        if (visit)
-            if (visit(guard)) return true;
-        if (obstacles.contains(guard.next_pos())) guard.turn_right();
-        else guard.move_forward();
+point_set walk(Grid grid, Guard guard) {
+    point_set path;
+    while (true) {
+        path.emplace(guard.pos);
+        const point &next_pos = guard.next_pos();
+        if (next_pos.x < 0 || next_pos.x >= grid[0].size() || next_pos.y < 0 ||
+            next_pos.y >= grid.size())
+            break;
+        if (grid[next_pos.y][next_pos.x] == '#')
+            guard.turn_right();
+        else
+            guard.move_forward();
     }
-    return false;
+    return path;
 }
 
-point_set visited_points(const point_set &obstacles, const Guard &guard,
-                         const point &bounds) {
-    point_set visited;
-    walk(obstacles, guard, bounds, [&visited](const Guard &g) {
-        visited.emplace(g.pos);
-        return false;
-    });
-    return visited;
+bool check_loop(Grid &grid, Guard guard) {
+    if (grid[guard.pos.y][guard.pos.x] == '#') return false;
+    while (true) {
+        const point &next_pos = guard.next_pos();
+        if (next_pos.x < 0 || next_pos.x >= grid[0].size() || next_pos.y < 0 ||
+            next_pos.y >= grid.size())
+            return false;
+        if (grid[next_pos.y][next_pos.x] == '#') {
+            guard.turn_right();
+            if (grid[guard.pos.y][guard.pos.x].last_dir == guard.dir) break;
+        } else {
+            grid[guard.pos.y][guard.pos.x].last_dir = guard.dir;
+            guard.move_forward();
+        }
+    }
+    return grid[guard.pos.y][guard.pos.x].last_dir == guard.dir;
 }
 
-int part1(const point_set &obstacles, const Guard &guard, const point &bounds) {
-    return visited_points(obstacles, guard, bounds).size();
+int part1(const Grid &grid, const Guard &guard) {
+    return walk(grid, guard).size();
 }
 
-int part2(const point_set &obstacles, const Guard &guard, const point &bounds) {
-    auto visited = visited_points(obstacles, guard, bounds);
-    visited.erase(guard.pos);
+int part2(const Grid &grid, const Guard &guard) {
+    auto path = walk(grid, guard);
     int result = 0;
-    for (const point &p : visited) {
-        guard_set gs;
-        point_set new_obstacles = obstacles;
-        new_obstacles.emplace(p);
-        if (walk(new_obstacles, guard, bounds, [&gs](const Guard &g) {
-                if (!gs.contains(g)) {
-                    gs.emplace(g);
-                    return false;
-                }
-                return true;
-            }))
-            ++result;
+    for (const point &p : path) {
+        Grid g = grid;
+        g[p.y][p.x] = '#';
+        if (check_loop(g, guard)) ++result;
     }
     return result;
 }
 
 int main(int argc, char **argv) {
-    const auto &[obstacles, guard, bounds] = fromFile(argv[1]);
-    timeit([&]() -> int { return part1(obstacles, guard, bounds); });
-    timeit([&]() -> int { return part2(obstacles, guard, bounds); });
+    const auto &[grid, guard] = fromFile(argv[1]);
+    timeit([&]() -> int { return part1(grid, guard); });
+    timeit([&]() -> int { return part2(grid, guard); });
     return 0;
 }
