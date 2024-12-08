@@ -48,7 +48,7 @@ uint64_t run(const Antenas &antenas, const point &bounds) {
                 auto f = [&](point p, const point &d) {
                     if constexpr (resonant_harmonics) antinodes.emplace(p);
                     while (true) {
-                        p = p + d;
+                        p += d;
                         if (!in_bounds(p, bounds)) break;
                         antinodes.emplace(p);
                         if constexpr (!resonant_harmonics) break;

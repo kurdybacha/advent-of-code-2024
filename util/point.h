@@ -8,7 +8,12 @@ struct point {
     T x;
     T y;
     bool operator==(const point &) const = default;
-    point operator-() { return {-x, -y}; }
+    point operator-() noexcept { return {-x, -y}; }
+    point &operator+=(const point &p) noexcept {
+        x += p.x;
+        y += p.y;
+        return *this;
+    }
 };
 
 template <typename T>
