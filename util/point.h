@@ -1,3 +1,4 @@
+#include <format>
 #include <unordered_set>
 
 namespace aoc {
@@ -7,9 +8,7 @@ struct point {
     T x;
     T y;
     bool operator==(const point &) const = default;
-    point operator-() {
-        return {-x, -y};
-    }
+    point operator-() { return {-x, -y}; }
 };
 
 template <typename T>
@@ -34,6 +33,13 @@ struct hash<aoc::point<T>> {
         std::size_t h1 = std::hash<T>{}(p.x);
         std::size_t h2 = std::hash<T>{}(p.y);
         return h1 ^ (h2 << 1);
+    }
+};
+
+template <typename T>
+struct formatter<aoc::point<T>> : formatter<std::string> {
+    auto format(const aoc::point<T> &p, format_context &ctx) const {
+        return format_to(ctx.out(), "{{{}, {}}}", p.x, p.y);
     }
 };
 
