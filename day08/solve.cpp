@@ -18,19 +18,15 @@ tuple<Antenas, point> parse_file(const string &file_name) {
     fstream file{file_name};
     string line;
     Antenas antenas;
-    int line_no = 0;
     point bounds{0, 0};
     while (getline(file, line)) {
-        if (bounds.x == 0) bounds.x = line.size();
-        for (int i = 0; i < line.size(); ++i) {
-            char antena = line[i];
-            if (antena != '.') {
-                antenas[antena].emplace_back(point{i, line_no});
-            }
+        bounds.x = 0;
+        for (char c : line) {
+            if (c != '.') antenas[c].emplace_back(bounds);
+            ++bounds.x;
         }
-        ++line_no;
+        ++bounds.y;
     }
-    bounds.y = line_no;
     return {antenas, bounds};
 }
 
