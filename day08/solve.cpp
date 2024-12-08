@@ -38,20 +38,20 @@ bool in_bounds(const point &p, const point &bounds) {
     return p.x >= 0 && p.x < bounds.x && p.y >= 0 && p.y < bounds.y;
 }
 
-uint64_t run(const Antenas &antenas, const point &bounds,
-             bool resonant = false) {
+template <bool resonant_harmonics>
+uint64_t run(const Antenas &antenas, const point &bounds) {
     point_set antinodes;
     for (const auto &[antena, locs] : antenas) {
         for (int i = 0; i < locs.size() - 1; ++i) {
             for (int j = i + 1; j < locs.size(); ++j) {
                 point diff = locs[j] - locs[i];
                 auto f = [&](point p, const point &d) {
-                    if (resonant) antinodes.emplace(p);
+                    if constexpr (resonant_harmonics) antinodes.emplace(p);
                     while (true) {
                         p = p + d;
                         if (!in_bounds(p, bounds)) break;
                         antinodes.emplace(p);
-                        if (!resonant) break;
+                        if constexpr (!resonant_harmonics) break;
                     }
                 };
                 f(locs[i], -diff);
@@ -62,16 +62,9 @@ uint64_t run(const Antenas &antenas, const point &bounds,
     return antinodes.size();
 }
 
-uint64_t part1(const Antenas &antenas, const point &bounds) {
-    return run(antenas, bounds);
-}
-uint64_t part2(const Antenas &antenas, const point &bounds) {
-    return run(antenas, bounds, true);
-}
-
 int main(int argc, char **argv) {
     const auto &[antenas, bounds] = parse_file(argv[1]);
-    timeit([&]() { return part1(antenas, bounds); });
-    timeit([&]() { return part2(antenas, bounds); });
+    timeit([&]() { return run<false>(antenas, bounds); });
+    timeit([&]() { return run<true>(antenas, bounds); });
     return 0;
 }
