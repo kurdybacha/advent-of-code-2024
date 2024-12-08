@@ -1,5 +1,6 @@
 #include <fstream>
 #include <print>
+#include <ranges>
 #include <unordered_map>
 #include <vector>
 
@@ -8,17 +9,19 @@
 
 using namespace std;
 using namespace utils;
+namespace rv = ranges::views;
 
 using point = aoc::point<int>;
+using bounds = point;
 using point_set = aoc::point_set<int>;
 
-using Antenas = unordered_map<char, vector<point>>;
+using antenas = unordered_map<char, vector<point>>;
 
-tuple<Antenas, point> parse_file(const string &file_name) {
+tuple<antenas, bounds> parse_file(const string &file_name) {
     fstream file{file_name};
     string line;
-    Antenas antenas;
-    point bounds{0, 0};
+    antenas antenas;
+    bounds bounds{0, 0};
     while (getline(file, line)) {
         bounds.x = 0;
         for (char c : line) {
@@ -30,14 +33,14 @@ tuple<Antenas, point> parse_file(const string &file_name) {
     return {antenas, bounds};
 }
 
-bool in_bounds(const point &p, const point &bounds) {
+bool in_bounds(const point &p, const bounds &bounds) {
     return p.x >= 0 && p.x < bounds.x && p.y >= 0 && p.y < bounds.y;
 }
 
 template <bool resonant_harmonics>
-uint64_t run(const Antenas &antenas, const point &bounds) {
+uint64_t run(const antenas &antenas, const bounds &bounds) {
     point_set antinodes;
-    for (const auto &[antena, locs] : antenas) {
+    for (const auto &locs : antenas | rv::values) {
         for (int i = 0; i < locs.size() - 1; ++i) {
             for (int j = i + 1; j < locs.size(); ++j) {
                 point diff = locs[j] - locs[i];
