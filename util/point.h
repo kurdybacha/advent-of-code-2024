@@ -7,11 +7,19 @@ struct point {
     T x;
     T y;
     bool operator==(const point &) const = default;
+    point operator-() {
+        return {-x, -y};
+    }
 };
 
 template <typename T>
 point<T> operator+(const point<T> &lhs, const point<T> &rhs) {
     return {lhs.x + rhs.x, lhs.y + rhs.y};
+}
+
+template <typename T>
+point<T> operator-(const point<T> &lhs, const point<T> &rhs) {
+    return {lhs.x - rhs.x, lhs.y - rhs.y};
 }
 
 template <typename T>
