@@ -9,7 +9,6 @@
 
 using namespace std;
 using namespace utils;
-namespace rv = ranges::views;
 
 using point = aoc::point<int>;
 using bounds = point;
@@ -40,7 +39,7 @@ bool in_bounds(const point &p, const bounds &bounds) {
 template <bool resonant_harmonics>
 uint64_t run(const antenas &antenas, const bounds &bounds) {
     point_set antinodes;
-    for (const auto &locs : antenas | rv::values) {
+    for (const auto &locs : antenas | views::values) {
         for (int i = 0; i < locs.size() - 1; ++i) {
             for (int j = i + 1; j < locs.size(); ++j) {
                 point diff = locs[j] - locs[i];
