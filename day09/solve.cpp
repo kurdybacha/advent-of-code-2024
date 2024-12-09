@@ -35,14 +35,12 @@ uint64_t checksum(const auto &disk) {
     uint64_t count = 0;
     uint64_t result = 0;
     for (auto it = disk.begin(); it != disk.end(); ++it) {
-        if ((*it).id == -1) {
-            count += (*it).count;
-            continue;
+        if ((*it).id != -1) {
+            const auto end = count + (*it).count;
+            for (auto i = count; i < end; ++i)
+                result += i * (*it).id;
         }
-        uint64_t end = count + (*it).count;
-        for (; count < end; ++count) {
-            result += count * (*it).id;
-        }
+        count += (*it).count;
     }
     return result;
 }
