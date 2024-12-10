@@ -69,7 +69,7 @@ uint64_t run(const grid &grid, const bounds &bounds,
         point_set nines;
         visited.emplace(start);
         part2 += dsf(grid, bounds, start, nines, visited);
-        part1 += (int)nines.size();
+        part1 += nines.size();
     }
     println("Part1: {}", part1);
     println("Part2: {}", part2);
