@@ -14,7 +14,7 @@ using stones = vector<uint64_t>;
 using memory = unordered_map<pair<stone, uint64_t>, uint64_t, pair_hash>;
 
 stones parse_file(const string &file_name) {
-    fstream file{file_name};
+    ifstream file{file_name};
     string line;
     getline(file, line);
     istringstream ss{line};
