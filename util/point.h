@@ -29,6 +29,13 @@ point<T> operator-(const point<T> &lhs, const point<T> &rhs) {
 template <typename T>
 using point_set = std::unordered_set<point<T>>;
 
+template <typename T>
+constexpr unsigned digit_count(T n) {
+    unsigned result = 1;
+    for (T i = 10;; i *= 10, result++)
+        if (i > n) return result;
+}
+
 }  // namespace aoc
 
 namespace std {
