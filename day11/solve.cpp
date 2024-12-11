@@ -1,5 +1,6 @@
 #include <fstream>
 #include <print>
+#include <ranges>
 #include <unordered_map>
 
 #include "../util/point.h"
@@ -15,12 +16,9 @@ using memory = unordered_map<pair<stone, uint64_t>, uint64_t, pair_hash>;
 stones parse_file(const string &file_name) {
     fstream file{file_name};
     string line;
-    stones stones;
     getline(file, line);
-    stringstream ss{line};
-    uint64_t n;
-    while (ss >> n) stones.emplace_back(n);
-    return stones;
+    istringstream ss{line};
+    return views::istream<uint64_t>(ss) | ranges::to<stones>();
 }
 
 uint64_t blink_at_stone(const stone stone, int blink_number, int max_blinks,
