@@ -1,6 +1,6 @@
-#include <algorithm>
+#include <array>
+#include <cassert>
 #include <fstream>
-#include <iterator>
 #include <print>
 #include <ranges>
 #include <vector>
@@ -14,7 +14,7 @@ using Grid = array<array<bool, 100>, 100>;
 using Updates = vector<vector<int>>;
 
 pair<Grid, Updates> fromFile(const string &file_name) {
-    fstream file{file_name};
+    ifstream file{file_name};
     string line;
     Grid grid{};
     Updates updates{};
@@ -24,33 +24,25 @@ pair<Grid, Updates> fromFile(const string &file_name) {
             next_section = true;
             continue;
         }
-        if (next_section) {
-            auto r = line | ranges::views::split(","sv) |
-                     ranges::views::transform([](auto &&i) {
-                         return std::stoi(i | ranges::to<std::string>());
-                     }) |
-                     ranges::to<std::vector<int>>();
-            updates.emplace_back(r);
-        } else {
-            auto r = line | ranges::views::split("|"sv) |
-                     ranges::views::transform([](auto &&i) {
-                         return std::stoi(i | ranges::to<std::string>());
-                     }) |
-                     ranges::to<std::vector<int>>();
-            grid[r[0]][r[1]] = true;
-        }
+        auto ints = line | views::split(next_section ? ',' : '|') |
+                    views::transform([](auto v) {
+                        return std::stoi(std::string(v.begin(), v.end()));
+                    }) |
+                    ranges::to<vector<int>>();
+        if (next_section)
+            updates.emplace_back(ints);
+        else
+            grid[ints[0]][ints[1]] = true;
     }
     return {grid, updates};
 }
 
-void part1(const Grid &grid, const Updates &updates) {
+int part1(const Grid &grid, const Updates &updates) {
     int result = 0;
     for (const auto &update : updates) {
         bool correct = true;
-        for (int i = 1; i < update.size(); ++i) {
-            const auto &row = grid[update[i - 1]];
-            if (distance(row.begin(), find(row.cbegin(), row.cend(), true)) ==
-                update[i]) {
+        for (int i = 0; i < update.size() - 1; ++i) {
+            if (!grid[update[i]][update[i + 1]]) {
                 correct = false;
                 break;
             }
@@ -59,14 +51,42 @@ void part1(const Grid &grid, const Updates &updates) {
             result += update[update.size() / 2];
         }
     }
-    println("Part 1: {}", result);
+    return result;
+}
+
+int part2(const Grid &grid, const Updates &updates) {
+    int result = 0;
+    for (const auto &update : updates) {
+        bool correct = true;
+        for (int i = 0; i < update.size() - 1; ++i) {
+            if (!grid[update[i]][update[i + 1]]) {
+                correct = false;
+                break;
+            }
+        }
+        if (!correct) {
+            vector<int> new_update;
+            new_update.push_back(update[0]);
+            for (int i = 1; i < update.size(); ++i) {
+                bool inserted = false;
+                for (int j = 0; j < new_update.size(); ++j) {
+                    if (grid[update[i]][new_update[j]]) {
+                        new_update.insert(new_update.begin() + j, update[i]);
+                        inserted = true;
+                        break;
+                    }
+                }
+                if (!inserted) new_update.emplace_back(update[i]);
+            }
+            result += new_update[new_update.size() / 2];
+        }
+    }
+    return result;
 }
 
 int main(int argc, char **argv) {
     const auto &[grid, updates] = fromFile(argv[1]);
-    part1(grid, updates);
+    timeit([&]() { return part1(grid, updates); });
+    timeit([&]() { return part2(grid, updates); });
     return 0;
-    // const Matrix &matrix = matrixFromFile(argv[1]);
-    // timeit([&]() -> int { return run(matrix, count_xmases_1); });
-    // timeit([&]() -> int { return run(matrix, count_xmases_2); });
 }
