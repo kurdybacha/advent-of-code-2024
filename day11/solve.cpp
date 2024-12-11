@@ -33,7 +33,6 @@ uint64_t blink_at_stone(const stone stone, int blink_number, int max_blinks,
         memory[sb] = r;
         return r;
     } else if (auto s = to_string(stone); s.size() % 2 == 0) {
-        memory[sb] = 2;
         uint64_t n1 = stol(s.substr(0, s.size() / 2));
         uint64_t n2 = stol(s.substr(s.size() / 2));
         auto r = blink_at_stone(n1, blink_number + 1, max_blinks, memory) +
