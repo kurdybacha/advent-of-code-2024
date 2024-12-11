@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <fstream>
 #include <print>
 #include <ranges>
@@ -46,11 +47,12 @@ uint64_t blink_at_stone(const stone stone, int blink_number, int max_blinks,
 }
 
 uint64_t run(const stones &stones, int max_blinks) {
-    uint64_t result = 0;
     memory memory;
-    for (auto stone : stones)
-        result += blink_at_stone(stone, 0, max_blinks, memory);
-    return result;
+    return ranges::fold_left(stones | views::transform([&](const stone &stone) {
+                                 return blink_at_stone(stone, 0, max_blinks,
+                                                       memory);
+                             }),
+                             0, plus<>());
 }
 
 int main(int argc, char **argv) {
