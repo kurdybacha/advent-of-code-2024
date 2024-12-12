@@ -18,7 +18,7 @@ using bounds = aoc::point<int>;
 struct plot {
     char type;
     bool visited = false;
-    point_set visited_dirs;
+    uint8_t visited_dirs;
 };
 
 using grid = vector<vector<plot>>;
@@ -51,12 +51,12 @@ void mark_all_along_side(grid &grid, const point &p, int dir_idx,
         auto nbr = p + d;
         while (true) {
             if (!::in_bounds(nbr, bounds)) break;
-            if (grid[nbr.y][nbr.x].visited_dirs.contains(dirs[dir_idx])) break;
+            if (grid[nbr.y][nbr.x].visited_dirs & (1 << dir_idx)) break;
             if (grid[nbr.y][nbr.x].type != type) break;
             auto nbr_dir = nbr + dirs[dir_idx];
             if (!::in_bounds(nbr_dir, bounds) ||
                 grid[nbr_dir.y][nbr_dir.x].type != type) {
-                grid[nbr.y][nbr.x].visited_dirs.emplace(dirs[dir_idx]);
+                grid[nbr.y][nbr.x].visited_dirs = (1 << dir_idx);
                 nbr = nbr + d;
             } else {
                 break;
@@ -81,7 +81,7 @@ tuple<int, int> count_plots_and_parimeter_bfs(grid &grid, const point &start,
         visited.emplace(p);
         ++no_of_plots;
         grid[p.y][p.x].visited = true;
-        for (auto dir : dirs) {
+        for (const auto &[dir_idx, dir] : views::enumerate(dirs)) {
             auto next = p + dir;
             const auto in_bounds = ::in_bounds(next, bounds);
             if (in_bounds && grid[next.y][next.x].type == type &&
@@ -90,15 +90,10 @@ tuple<int, int> count_plots_and_parimeter_bfs(grid &grid, const point &start,
             if (!in_bounds || grid[next.y][next.x].type != type) {
                 ++parimeter;
             }
-            for (auto &&[dir_idx, dir] : views::enumerate(dirs)) {
-                auto next = p + dir;
-                const auto in_bounds = ::in_bounds(next, bounds);
-                if (!grid[p.y][p.x].visited_dirs.contains(dir) &&
-                    (!in_bounds || grid[next.y][next.x].type != type)) {
-                    mark_all_along_side(grid, p, dir_idx, bounds);
-                    ++sides;
-                }
-                grid[p.y][p.x].visited_dirs.emplace(dir);
+            if (!(grid[p.y][p.x].visited_dirs & (1 << dir_idx)) &&
+                (!in_bounds || grid[next.y][next.x].type != type)) {
+                mark_all_along_side(grid, p, dir_idx, bounds);
+                ++sides;
             }
         }
     }
