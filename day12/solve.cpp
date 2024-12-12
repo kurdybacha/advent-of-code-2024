@@ -41,6 +41,30 @@ bool in_bounds(const point &p, const bounds &bounds) {
 
 const auto dirs = vector<point>{{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
 
+point rotate_left(int dir_idx) { return dirs[(dir_idx - 1) % dirs.size()]; }
+point rotate_right(int dir_idx) { return dirs[(dir_idx + 1) % dirs.size()]; }
+
+void mark_all_along_side(grid &grid, const point &p, int dir_idx,
+                         const bounds &bounds) {
+    char type = grid[p.y][p.x].type;
+    for (auto d : {rotate_right(dir_idx), rotate_left(dir_idx)}) {
+        auto nbr = p + d;
+        while (true) {
+            if (!::in_bounds(nbr, bounds)) break;
+            if (grid[nbr.y][nbr.x].visited_dirs.contains(dirs[dir_idx])) break;
+            if (grid[nbr.y][nbr.x].type != type) break;
+            auto nbr_dir = nbr + dirs[dir_idx];
+            if (!::in_bounds(nbr_dir, bounds) ||
+                grid[nbr_dir.y][nbr_dir.x].type != type) {
+                grid[nbr.y][nbr.x].visited_dirs.emplace(dirs[dir_idx]);
+                nbr = nbr + d;
+            } else {
+                break;
+            }
+        }
+    }
+}
+
 tuple<int, int> count_plots_and_parimeter_bfs(grid &grid, const point &start,
                                               const bounds &bounds) {
     queue<point> q;
@@ -66,40 +90,22 @@ tuple<int, int> count_plots_and_parimeter_bfs(grid &grid, const point &start,
             if (!in_bounds || grid[next.y][next.x].type != type) {
                 ++parimeter;
             }
-        }
-    }
-    for (auto p : visited) {
-        for (auto &&[dir_idx, dir] : views::enumerate(dirs)) {
-            auto next = p + dir;
-            const auto in_bounds = ::in_bounds(next, bounds);
-            if (!grid[p.y][p.x].visited_dirs.contains(dir) &&
-                (!in_bounds || grid[next.y][next.x].type != type)) {
-                for (auto d : {dirs[(dir_idx + 1) % dirs.size()],
-                               dirs[(dir_idx - 1) % dirs.size()]}) {
-                    auto n = p + d;
-                    while (true) {
-                        if (!::in_bounds(n, bounds)) break;
-                        if (grid[n.y][n.x].visited_dirs.contains(dir)) break;
-                        if (grid[n.y][n.x].type != type) break;
-                        auto nn = n + dir;
-                        if (!::in_bounds(nn, bounds) ||
-                            grid[nn.y][nn.x].type != type) {
-                            grid[n.y][n.x].visited_dirs.emplace(dir);
-                            n = n + d;
-                        } else {
-                            break;
-                        }
-                    }
+            for (auto &&[dir_idx, dir] : views::enumerate(dirs)) {
+                auto next = p + dir;
+                const auto in_bounds = ::in_bounds(next, bounds);
+                if (!grid[p.y][p.x].visited_dirs.contains(dir) &&
+                    (!in_bounds || grid[next.y][next.x].type != type)) {
+                    mark_all_along_side(grid, p, dir_idx, bounds);
+                    ++sides;
                 }
-                ++sides;
+                grid[p.y][p.x].visited_dirs.emplace(dir);
             }
-            grid[p.y][p.x].visited_dirs.emplace(dir);
         }
     }
     return {no_of_plots * parimeter, no_of_plots * sides};
 }
 
-tuple<int, int> run(grid grid) {
+void run(grid grid) {
     const bounds bounds{(int)grid[0].size(), (int)grid.size()};
     int part1 = 0;
     int part2 = 0;
@@ -111,12 +117,15 @@ tuple<int, int> run(grid grid) {
                 part1 += p1;
                 part2 += p2;
             }
-    return {part1, part2};
+    println("Part 1: {}", part1);
+    println("Part 2: {}", part2);
 }
 
 int main(int argc, char **argv) {
     auto grid = parse_file(argv[1]);
-    timeit([&]() { return get<0>(run(grid)); });
-    timeit([&]() { return get<1>(run(grid)); });
+    timeit([&]() {
+        run(grid);
+        return 0;
+    });
     return 0;
 }
