@@ -73,12 +73,10 @@ tuple<int, int> count_plots_and_parimeter_bfs(grid &grid, const point &start,
     int no_of_plots = 0;
     int parimeter = 0;
     int sides = 0;
-    point_set visited;
     while (!q.empty()) {
         auto p = q.front();
         q.pop();
         if (grid[p.y][p.x].visited) continue;
-        visited.emplace(p);
         ++no_of_plots;
         grid[p.y][p.x].visited = true;
         for (const auto &[dir_idx, dir] : views::enumerate(dirs)) {
