@@ -1,11 +1,11 @@
 #include <math.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <format>
 #include <fstream>
 #include <print>
 #include <ranges>
-#include <algorithm>
 
 #include "../util/point.h"
 #include "../utils.h"
@@ -57,11 +57,13 @@ machines parse_file(const string &file_name) {
 }
 
 int64_t find_min_pushes(const machine &machine, int64_t add) {
-    prize prize = machine.prize + add;
-    double a_p = double(prize.x * machine.b.y - prize.y * machine.b.x) /
-                 (machine.b.y * machine.a.x - machine.b.x * machine.a.y);
-    double b_p = double(prize.x * machine.a.y - prize.y * machine.a.x) /
-                 (machine.b.x * machine.a.y - machine.b.y * machine.a.x);
+    const prize prize = machine.prize + add;
+    const auto &a = machine.a;
+    const auto &b = machine.b;
+    double a_p =
+        double(prize.x * b.y - prize.y * b.x) / (b.y * a.x - b.x * a.y);
+    double b_p =
+        double(prize.x * a.y - prize.y * a.x) / (b.x * a.y - b.y * a.x);
     if (floor(a_p) != a_p || floor(b_p) != b_p) return 0;
     return a_p * 3 + b_p;
 }
