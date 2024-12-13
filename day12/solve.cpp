@@ -17,8 +17,8 @@ using bounds = aoc::point<int>;
 
 struct plot {
     char type;
-    bool visited = false;
     uint8_t visited_dirs;
+    inline bool visited() const { return visited_dirs == 0xF; }
 };
 
 using grid = vector<vector<plot>>;
@@ -76,14 +76,13 @@ tuple<int, int> count_plots_and_parimeter_bfs(grid &grid, const point &start,
     while (!q.empty()) {
         auto p = q.front();
         q.pop();
-        if (grid[p.y][p.x].visited) continue;
+        if (grid[p.y][p.x].visited()) continue;
         ++no_of_plots;
-        grid[p.y][p.x].visited = true;
         for (const auto &[dir_idx, dir] : views::enumerate(dirs)) {
             auto next = p + dir;
             const auto in_bounds = ::in_bounds(next, bounds);
             if (in_bounds && grid[next.y][next.x].type == type &&
-                !grid[next.y][next.x].visited)
+                !grid[next.y][next.x].visited())
                 q.emplace(next);
             if (!in_bounds || grid[next.y][next.x].type != type) {
                 ++parimeter;
@@ -93,6 +92,7 @@ tuple<int, int> count_plots_and_parimeter_bfs(grid &grid, const point &start,
                 mark_all_along_side(grid, p, dir_idx, bounds);
                 ++sides;
             }
+            grid[p.y][p.x].visited_dirs |= (1 << dir_idx);
         }
     }
     return {no_of_plots * parimeter, no_of_plots * sides};
@@ -104,7 +104,7 @@ void run(grid grid) {
     int part2 = 0;
     for (int x = 0; x < grid[0].size(); ++x)
         for (int y = 0; y < grid.size(); ++y)
-            if (!grid[y][x].visited) {
+            if (!grid[y][x].visited()) {
                 auto [p1, p2] =
                     count_plots_and_parimeter_bfs(grid, {x, y}, bounds);
                 part1 += p1;
