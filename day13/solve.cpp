@@ -1,13 +1,11 @@
 #include <math.h>
 
-#include <algorithm>
 #include <cstdint>
+#include <format>
 #include <fstream>
-#include <iterator>
-#include <limits>
 #include <print>
-#include <queue>
 #include <ranges>
+#include <algorithm>
 
 #include "../util/point.h"
 #include "../utils.h"
@@ -15,8 +13,8 @@
 using namespace std;
 using namespace utils;
 
-using button = aoc::point<uint64_t>;
-using prize = aoc::point<uint64_t>;
+using button = aoc::point<int64_t>;
+using prize = aoc::point<int64_t>;
 
 struct machine {
     button a;
@@ -24,13 +22,21 @@ struct machine {
     ::prize prize;
 };
 
+template <>
+struct std::formatter<machine> : formatter<std::string> {
+    auto format(const machine &m, format_context &ctx) const {
+        return format_to(ctx.out(), "[ a: {}, b: {}, prize: {} ]", m.a, m.b,
+                         m.prize);
+    }
+};
+
 using machines = vector<machine>;
 
 button button_from_str(const string &line, char delim = '+') {
     auto s = line.find_first_of(delim) + 1;
     auto e = line.find_first_of(',', s);
-    uint64_t x = stol(line.substr(s, e));
-    uint64_t y = stol(line.substr(e + 4));
+    int64_t x = stol(line.substr(s, e));
+    int64_t y = stol(line.substr(e + 4));
     return {x, y};
 }
 
@@ -50,40 +56,27 @@ machines parse_file(const string &file_name) {
     return machines;
 }
 
-uint64_t find_min_pushes(const machine &machine, uint64_t multiply) {
-    prize prize = machine.prize * multiply;
-    uint64_t min = numeric_limits<uint64_t>::max();
-    uint64_t max_a = ::min(prize.x / machine.a.x, prize.y / machine.a.y);
-    uint64_t max_b = ::min(prize.x / machine.b.x, prize.y / machine.b.y);
-    for (uint64_t a = 0; a <= max_a; ++a) {
-        for (uint64_t b = 0; b <= max_b; ++b) {
-            ::prize sum{0, 0};
-            sum = machine.a * a;
-            sum += machine.b * b;
-            if (sum == prize) {
-                min = ::min(min, a * 3 + b);
-                break;
-            }
-            if (sum.x > prize.x || sum.y > prize.y) {
-                break;
-            }
-        }
-    }
-    if (min == numeric_limits<uint64_t>::max()) return 0;
-    return min;
+int64_t find_min_pushes(const machine &machine, int64_t add) {
+    prize prize = machine.prize + add;
+    double a_p = double(prize.x * machine.b.y - prize.y * machine.b.x) /
+                 (machine.b.y * machine.a.x - machine.b.x * machine.a.y);
+    double b_p = double(prize.x * machine.a.y - prize.y * machine.a.x) /
+                 (machine.b.x * machine.a.y - machine.b.y * machine.a.x);
+    if (floor(a_p) != a_p || floor(b_p) != b_p) return 0;
+    return a_p * 3 + b_p;
 }
 
-uint64_t run(const machines &machines, uint64_t multiply = 1) {
-    uint64_t result = 0;
-    for (const auto &machine : machines) {
-        result += find_min_pushes(machine, multiply);
-    }
-    return result;
+int64_t run(const machines &machines, int64_t add = 0) {
+    return ranges::fold_left(
+        machines | views::transform([add](const machine &machine) {
+            return find_min_pushes(machine, add);
+        }),
+        0, plus<>());
 }
 
 int main(int argc, char **argv) {
     const auto &machines = parse_file(argv[1]);
     timeit([&]() { return run(machines); });
-    // timeit([&]() { return run(machines, 10000000000000); });
+    timeit([&]() { return run(machines, 10000000000000); });
     return 0;
 }

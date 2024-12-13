@@ -44,6 +44,10 @@ template <typename T>
 point<T> operator*(const point<T> &lhs, T multiplier) {
     return {lhs.x * multiplier, lhs.y * multiplier};
 }
+template <typename T>
+point<T> operator+(const point<T> &lhs, T add) {
+    return {lhs.x + add, lhs.y + add};
+}
 
 template <typename T>
 using point_set = std::unordered_set<point<T>>;
