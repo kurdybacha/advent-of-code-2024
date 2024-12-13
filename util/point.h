@@ -14,6 +14,16 @@ struct point {
         y += p.y;
         return *this;
     }
+    point &operator*=(const point &p) noexcept {
+        x *= p.x;
+        y *= p.y;
+        return *this;
+    }
+    point &operator*=(const T mutiplier) noexcept {
+        x *= mutiplier;
+        y *= mutiplier;
+        return *this;
+    }
 };
 
 template <typename T>
@@ -24,6 +34,15 @@ point<T> operator+(const point<T> &lhs, const point<T> &rhs) {
 template <typename T>
 point<T> operator-(const point<T> &lhs, const point<T> &rhs) {
     return {lhs.x - rhs.x, lhs.y - rhs.y};
+}
+
+template <typename T>
+point<T> operator*(const point<T> &lhs, const point<T> &rhs) {
+    return {lhs.x * rhs.x, lhs.y * rhs.y};
+}
+template <typename T>
+point<T> operator*(const point<T> &lhs, T multiplier) {
+    return {lhs.x * multiplier, lhs.y * multiplier};
 }
 
 template <typename T>
