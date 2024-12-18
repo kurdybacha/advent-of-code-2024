@@ -152,6 +152,7 @@ struct cpu {
             for (int i = output.size() - 1; i >= 0; --i) {
                 if (output[i] != program[diff + i]) {
                     ends_with = false;
+                    break;
                 }
             }
             if (ends_with)
