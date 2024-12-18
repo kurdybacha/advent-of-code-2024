@@ -91,8 +91,34 @@ int run(::grid grid, const vector<point> &points, int time) {
     return grid[bounds.y - 1][bounds.x - 1].distance;
 }
 
+int run2(::grid grid, const vector<point> &points, int time) {
+    const bounds bounds{(int)grid[0].size(), (int)grid.size()};
+    point start = {0, 0};
+    for (int i = 0; i < time; ++i) {
+        const point &p = points[i];
+        node &n = grid[p.y][p.x];
+        n.type = '#';
+    }
+    for (int i = time; i < points.size(); ++i) {
+        const point &p = points[i];
+        node &n = grid[p.y][p.x];
+        n.type = '#';
+        auto copy_grid = grid;
+        dijkstra(copy_grid, start, bounds);
+        if (copy_grid[bounds.y - 1][bounds.x - 1].distance == MAX) {
+            return i;
+        }
+    }
+    return MAX;
+}
+
 int main(int argc, char **argv) {
     const auto &[grid, points] = parse_file(argv[1], 71);
     timeit([&]() { return run(grid, points, 1024); });
+    timeit([&]() {
+        auto idx = run2(grid, points, 1024);
+        println("{}", points[idx]);
+        return idx;
+    });
     return 0;
 }
