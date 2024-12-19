@@ -24,33 +24,39 @@ tuple<towels, patterns> parse_file(const string &file_name) {
     return {towels, patterns};
 }
 
-
-
-bool check_pattern(const string & pattern, const towels & towels, size_t pos) {
-    if (pos == pattern.size()) return true;
+bool check_pattern(const string &pattern, const towels &towels, size_t pos,
+                   int &count) {
+    if (pos == pattern.size()) {
+        ++count;
+        return true;
+    };
     bool found = false;
-    for(auto && towel : towels) {
+    for (auto &&towel : towels) {
         if (pattern.substr(pos, towel.size()) == towel) {
-            if (check_pattern(pattern, towels, pos + towel.size())) {
+            if (check_pattern(pattern, towels, pos + towel.size(), count)) {
                 found = true;
-                break;
             }
         }
     }
     return found;
 }
 
-int run(const towels &towels, const patterns &patterns) {
+tuple<int, int> run(const towels &towels, const patterns &patterns) {
     int result = 0;
-    for( auto && pattern : patterns) {
-        if (check_pattern(pattern, towels, 0) )
+    int result2 = 0;
+    for (auto &&pattern : patterns) {
+        int count = 0;
+        if (check_pattern(pattern, towels, 0, count)) {
             ++result;
+            result2 += count;
+        }
     }
-    return result;
+    return {result, result2};
 }
 
 int main(int argc, char **argv) {
     const auto &[towels, patterns] = parse_file(argv[1]);
-    timeit([&]() { return run(towels, patterns); });
+    timeit([&]() { return get<0>(run(towels, patterns)); });
+    timeit([&]() { return get<1>(run(towels, patterns)); });
     return 0;
 }
