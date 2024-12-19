@@ -24,9 +24,29 @@ tuple<towels, patterns> parse_file(const string &file_name) {
     return {towels, patterns};
 }
 
-int run(const towels &towels, const patterns &patterns) {
 
-    return 0;
+
+bool check_pattern(const string & pattern, const towels & towels, size_t pos) {
+    if (pos == pattern.size()) return true;
+    bool found = false;
+    for(auto && towel : towels) {
+        if (pattern.substr(pos, towel.size()) == towel) {
+            if (check_pattern(pattern, towels, pos + towel.size())) {
+                found = true;
+                break;
+            }
+        }
+    }
+    return found;
+}
+
+int run(const towels &towels, const patterns &patterns) {
+    int result = 0;
+    for( auto && pattern : patterns) {
+        if (check_pattern(pattern, towels, 0) )
+            ++result;
+    }
+    return result;
 }
 
 int main(int argc, char **argv) {
