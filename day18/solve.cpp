@@ -15,20 +15,21 @@ using point = aoc::point<int>;
 using point_set = aoc::point_set<int>;
 using bounds = aoc::point<int>;
 
-const auto MAX = numeric_limits<int>::max();
+const auto INF = numeric_limits<int>::max();
 
 struct node {
     char type = '.';
-    int distance = MAX;
+    int distance = INF;
+    bool visited = false;
 };
 
 struct state {
     point loc;
-    int distance = MAX;
+    int distance = INF;
 };
 
 inline bool operator<(const state &lhs, const state &rhs) {
-    return lhs.distance < rhs.distance;
+    return lhs.distance > rhs.distance;
 }
 
 using grid = vector<vector<node>>;
@@ -65,6 +66,8 @@ void dijkstra(grid &grid, point start, const bounds &bounds) {
         queue.pop();
         auto loc = state.loc;
         ::node &node = grid[loc.y][loc.x];
+        if (node.visited) continue;
+        node.visited = true;
         for (const auto &dir : dirs) {
             auto next = loc + dir;
             if (!in_bounds(next, bounds)) continue;
@@ -99,26 +102,32 @@ int run2(::grid grid, const vector<point> &points, int time) {
         node &n = grid[p.y][p.x];
         n.type = '#';
     }
-    for (int i = time; i < points.size(); ++i) {
-        const point &p = points[i];
-        node &n = grid[p.y][p.x];
-        n.type = '#';
-        auto copy_grid = grid;
-        dijkstra(copy_grid, start, bounds);
-        if (copy_grid[bounds.y - 1][bounds.x - 1].distance == MAX) {
-            return i;
+    int begin = time;
+    int end = points.size();
+    while (true) {
+        if ((end - begin) <= 1) return begin;
+        int mid = (end - begin) / 2;
+        ::grid new_grid = grid;
+        for (int i = time + 1; i < begin + mid; ++i) {
+            const point &p = points[i];
+            new_grid[p.y][p.x].type = '#';
+        }
+        dijkstra(new_grid, start, bounds);
+        if (new_grid[bounds.y - 1][bounds.x - 1].distance == INF) {
+            end = begin + mid;
+        } else {
+            begin = begin + mid;
         }
     }
-    return MAX;
+    return INF;
 }
 
 int main(int argc, char **argv) {
     const auto &[grid, points] = parse_file(argv[1], 71);
     timeit([&]() { return run(grid, points, 1024); });
     timeit([&]() {
-        auto idx = run2(grid, points, 1024);
-        println("{}", points[idx]);
-        return idx;
+        auto idx = run2(grid, points, 1024 + 1);
+        return points[idx];
     });
     return 0;
 }
