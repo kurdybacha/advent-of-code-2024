@@ -66,7 +66,6 @@ void dijkstra(grid &grid, point start, const bounds &bounds) {
         queue.pop();
         auto loc = state.loc;
         ::node &node = grid[loc.y][loc.x];
-        if (node.visited) continue;
         node.visited = true;
         for (const auto &dir : dirs) {
             auto next = loc + dir;
@@ -76,7 +75,7 @@ void dijkstra(grid &grid, point start, const bounds &bounds) {
             auto alt_dist = node.distance + 1;
             if (alt_dist < next_node.distance) {
                 next_node.distance = alt_dist;
-                queue.emplace(::state{next, alt_dist});
+                if (!next_node.visited) queue.emplace(::state{next, alt_dist});
             }
         }
     }
@@ -108,7 +107,7 @@ int run2(::grid grid, const vector<point> &points, int time) {
         if ((end - begin) <= 1) return begin;
         int mid = (end - begin) / 2;
         ::grid new_grid = grid;
-        for (int i = time + 1; i < begin + mid; ++i) {
+        for (int i = time; i < begin + mid; ++i) {
             const point &p = points[i];
             new_grid[p.y][p.x].type = '#';
         }

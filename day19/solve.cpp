@@ -1,10 +1,7 @@
-#include <math.h>
-
 #include <fstream>
 #include <print>
 #include <ranges>
 
-#include "../util/point.h"
 #include "../utils.h"
 
 using namespace std;
@@ -27,7 +24,10 @@ tuple<towels, patterns> parse_file(const string &file_name) {
     return {towels, patterns};
 }
 
-int run(const towels &towels, const patterns &patterns) { return 0; }
+int run(const towels &towels, const patterns &patterns) {
+
+    return 0;
+}
 
 int main(int argc, char **argv) {
     const auto &[towels, patterns] = parse_file(argv[1]);
