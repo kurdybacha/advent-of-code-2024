@@ -1,9 +1,10 @@
-#include <math.h>
-
+#include <algorithm>
 #include <fstream>
 #include <limits>
 #include <print>
 #include <queue>
+#include <ranges>
+#include <unordered_map>
 
 #include "../util/point.h"
 #include "../utils.h"
@@ -34,6 +35,20 @@ inline bool operator<(const state &lhs, const state &rhs) {
 
 using grid = vector<vector<node>>;
 
+template <>
+struct std::formatter<grid> : formatter<std::string> {
+    auto format(const grid &g, format_context &ctx) const {
+        string str;
+        for (auto &&r : g) {
+            for (auto &&n : r) {
+                str += n.type;
+            }
+            str += '\n';
+        }
+        return format_to(ctx.out(), "{}", str);
+    }
+};
+
 tuple<grid, point, point, bounds> parse_file(const string &file_name) {
     ifstream file{file_name};
     grid grid;
@@ -45,7 +60,7 @@ tuple<grid, point, point, bounds> parse_file(const string &file_name) {
     while (getline(file, line)) {
         row.clear();
         bounds.x = 0;
-        for(char c : line) {
+        for (char c : line) {
             if (c == 'S')
                 start = bounds;
             else if (c == 'E')
@@ -66,12 +81,14 @@ bool in_bounds(const point &p, const bounds &bounds) {
 const auto dirs =
     array<point, 4>{point{0, -1}, point{1, 0}, point{0, 1}, point{-1, 0}};
 
-point_set dijkstra(grid &grid, const point & start, const bounds &bounds) {
+point_set dijkstra_shortest_path(grid &grid, const point &start,
+                                 const point &end, const bounds &bounds) {
+    unordered_map<point, point> prev;
     priority_queue<state> queue;
     node &start_node = grid[start.y][start.x];
     start_node.distance = 0;
     queue.emplace(start);
-    point_set candidates;
+    prev[start] = {0, 0};
     while (!queue.empty()) {
         auto state = queue.top();
         queue.pop();
@@ -82,74 +99,71 @@ point_set dijkstra(grid &grid, const point & start, const bounds &bounds) {
             auto next = loc + dir;
             if (!in_bounds(next, bounds)) continue;
             ::node &next_node = grid[next.y][next.x];
-            if (next_node.type == '#') {
-                auto next_next = next + dir;
-                if (!in_bounds(next_next, bounds)) continue;
-                if (grid[next_next.y][next_next.x].type == '.')
-                    candidates.emplace(next);
-                continue;
-            }
+            if (next_node.type == '#') continue;
             auto alt_dist = node.distance + 1;
             if (alt_dist < next_node.distance) {
                 next_node.distance = alt_dist;
+                prev[next] = loc;
                 if (!next_node.visited) queue.emplace(::state{next, alt_dist});
             }
         }
     }
-    return candidates;
+
+    point_set shortest_path;
+    auto u = end;
+    while (prev.contains(u)) {
+        shortest_path.insert(u);
+        u = prev[u];
+    }
+    return shortest_path;
 }
 
-int run(::grid grid, const point & start, const point & end, const bounds & bounds) {
-    ::grid clean_grid = grid;
-    const point_set & candidates = dijkstra(grid, start, bounds);
-    int min_dist = grid[end.y][end.x].distance;
-    int result = 0;
-    for(auto && point : candidates) {
-        grid = clean_grid;
-        grid[point.y][point.x].type = '.';
-        dijkstra(grid, start, bounds);
-        int min = grid[end.y][end.x].distance;
-        if (min != INF && (min_dist - min) >= 100) {
-            ++result;
+int check_shortcuts(const grid &grid, const point &loc,
+                    const point_set &shortest_path, const bounds &bounds,
+                    int cheat_size, int min_saving) {
+    point_set visited;
+    queue<pair<point, int>> queue;
+    queue.push({loc, cheat_size});
+    int shortcuts = 0;
+    auto &&start_node = grid[loc.y][loc.x];
+    while (!queue.empty()) {
+        auto p = queue.front();
+        queue.pop();
+        const auto &[ploc, pdistance] = p;
+        if (visited.contains(ploc)) continue;
+        visited.insert(ploc);
+        if (shortest_path.contains(ploc) &&
+            grid[ploc.y][ploc.x].distance > start_node.distance) {
+            int diff = grid[ploc.y][ploc.x].distance -
+                       (start_node.distance + (cheat_size - pdistance));
+            if (diff >= min_saving) ++shortcuts;
+        }
+        if (pdistance == 0) continue;
+        for (const auto &dir : dirs) {
+            auto next = ploc + dir;
+            if (!in_bounds(next, bounds)) continue;
+            if (visited.contains(next)) continue;
+            queue.push({next, pdistance - 1});
         }
     }
-    return result;
+    return shortcuts;
 }
 
-// int run2(::grid grid, const vector<point> &points, int time) {
-//     const bounds bounds{(int)grid[0].size(), (int)grid.size()};
-//     point start = {0, 0};
-//     for (int i = 0; i < time; ++i) {
-//         const point &p = points[i];
-//         node &n = grid[p.y][p.x];
-//         n.type = '#';
-//     }
-//     int begin = time;
-//     int end = points.size();
-//     while (true) {
-//         if ((end - begin) <= 1) return begin;
-//         int mid = (end - begin) / 2;
-//         ::grid new_grid = grid;
-//         for (int i = time; i < begin + mid; ++i) {
-//             const point &p = points[i];
-//             new_grid[p.y][p.x].type = '#';
-//         }
-//         dijkstra(new_grid, start, bounds);
-//         if (new_grid[bounds.y - 1][bounds.x - 1].distance == INF) {
-//             end = begin + mid;
-//         } else {
-//             begin = begin + mid;
-//         }
-//     }
-//     return INF;
-// }
+int run(::grid grid, const point &start, const point &end, const bounds &bounds,
+        int cheat_size) {
+    const point_set &shortest_path =
+        dijkstra_shortest_path(grid, start, end, bounds);
+    return ranges::fold_left(
+        shortest_path | views::transform([&](const point &loc) {
+            return check_shortcuts(grid, loc, shortest_path, bounds, cheat_size,
+                                   100);
+        }),
+        0, plus<>());
+}
 
 int main(int argc, char **argv) {
     const auto &[grid, start, end, bounds] = parse_file(argv[1]);
-    timeit([&]() { return run(grid, start, end, bounds); });
-    // timeit([&]() {
-    //     auto idx = run2(grid, points, 1024 + 1);
-    //     return points[idx];
-    // });
+    timeit([&]() { return run(grid, start, end, bounds, 2); });
+    timeit([&]() { return run(grid, start, end, bounds, 20); });
     return 0;
 }
